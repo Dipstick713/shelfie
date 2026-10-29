@@ -44,6 +44,14 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
   - the `grids` table (jsonb `config` and `items`, RLS: public-or-owner read, owner write)
   - the public `covers` bucket (owner writes go to `<uid>/...`)
 
+## UI design (rebuilt 2026-10-29)
+- The look mixes the user's portfolio (github.com/Dipstick713/Portfolio, a dark `#161616` bento layout with Satoshi and JetBrains Mono) with a "lab blueprint" reference: grid lines, orange square `.mark`s, `.brackets` corners and chamfered `.btn.primary`. Keep it whimsical and modern.
+- Themes: light "lab paper" and dark. Tokens are `--app-*` in `src/index.css`. The theme follows `prefers-color-scheme` unless `data-theme` is set on `<html>`, which the header toggle does, storing it in localStorage `shelfie:theme`. An inline script in `index.html` applies it before paint.
+- Fonts: Satoshi (body, from Fontshare), JetBrains Mono (`.mono`, buttons, labels) and Tektur (display and wordmark). Fontshare fonts must not be offered as canvas fonts, because PNG export needs CORS-loaded Google fonts.
+- Each category has an `accent` in `categories.ts`, exposed as the CSS var `--cat` (UI only, never in exports).
+- Mascot: `ShelfBot.tsx`. Its eyes track the pointer through a ref (no re-renders). It blinks and bobs, and the home page pokes it to hop and look happy. Mood lines live in `src/lib/moods.ts`. `Doodles.tsx` holds the animated category icons (`.doodle-host:hover`), `ShuffleTile` and `Marquee`.
+- The `.canvas` CSS section is export-critical. Restyle around it, not inside it.
+
 ## Conventions
 - The app must work without any keys. Missing keys degrade to a notice plus manual add. With no Supabase keys the app shows "Offline mode" and keeps local drafts.
 - `items` is a sparse array in row-major order, where `null` marks an empty slot. It may be longer than rows×cols while editing and is trimmed on save.

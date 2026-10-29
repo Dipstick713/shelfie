@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import type { Category, GridConfig, GridDoc, GridItem } from '../lib/types'
 import { CATEGORIES } from '../lib/categories'
@@ -164,24 +164,32 @@ function Editor() {
   }
 
   return (
-    <main className="editor">
+    <main className="editor" style={{ '--cat': meta.accent } as CSSProperties}>
       <div className="editor-toolbar">
         {doc.id ? (
-          <span className="pill">
-            {meta.emoji} {meta.label}
+          <span className="pill mono">
+            <i className="dot" /> {meta.label}
           </span>
         ) : (
-          <nav className="cat-tabs">
+          <nav className="cat-tabs mono">
             {Object.values(CATEGORIES).map((c) => (
-              <Link key={c.id} to={`/create/${c.id}`} className={c.id === doc.category ? 'active' : ''}>
-                {c.emoji} {c.label}
+              <Link
+                key={c.id}
+                to={`/create/${c.id}`}
+                className={c.id === doc.category ? 'active' : ''}
+                style={{ '--cat': c.accent } as CSSProperties}
+              >
+                <i className="dot" /> {c.label}
               </Link>
             ))}
           </nav>
         )}
         <div className="spacer" />
-        <span className="muted tiny">
-          {filledCount}/{capacity} filled
+        <span className="fill-meter mono" title={`${filledCount} of ${capacity} slots filled`}>
+          <span className="fill-bar">
+            <span style={{ width: `${capacity ? Math.min(100, (filledCount / capacity) * 100) : 0}%` }} />
+          </span>
+          {filledCount}/{capacity}
         </span>
         <button className="btn ghost" onClick={handleReset}>
           Clear
@@ -221,7 +229,7 @@ function Editor() {
               onSwap={swap}
             />
           </div>
-          <p className="muted tiny hint">Click a cell to add · drag to rearrange · ✕ to remove</p>
+          <p className="muted tiny hint mono">click a cell to add · drag to rearrange · ✕ to remove</p>
         </section>
       </div>
 

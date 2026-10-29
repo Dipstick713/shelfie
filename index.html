@@ -8,11 +8,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@500;700&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;700&family=Space+Grotesk:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@500;700&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@500;700&family=Space+Grotesk:wght@400;600;700&family=Tektur:wght@500;700;800;900&display=swap"
       rel="stylesheet"
       crossorigin="anonymous"
     />
+    <!-- UI font (not used inside exported grids) -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#e7e7e4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0e0e" media="(prefers-color-scheme: dark)" />
     <title>Shelfie — favourites grid</title>
+    <script>
+      try {
+        const t = localStorage.getItem('shelfie:theme')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

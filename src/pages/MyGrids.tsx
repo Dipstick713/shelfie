@@ -6,6 +6,7 @@ import { deleteGrid, listMyGrids } from '../lib/grids'
 import { useAuth } from '../lib/auth'
 import { AuthDialog } from '../components/AuthDialog'
 import { Cover } from '../components/Cover'
+import { ShelfBot } from '../components/ShelfBot'
 
 export function MyGrids() {
   const { user, loading } = useAuth()
@@ -40,12 +41,18 @@ export function MyGrids() {
 
   return (
     <main className="my-grids">
-      <h1>My grids</h1>
+      <h1 className="page-title">
+        <i className="mark inline" /> My grids
+      </h1>
       {error && <p className="error">{error}</p>}
       {grids?.length === 0 && (
-        <p className="muted">
-          Nothing saved yet. <Link to="/">Start a grid →</Link>
-        </p>
+        <div className="empty-shelf">
+          <ShelfBot size={120} track />
+          <p className="muted">Nothing saved yet. Shelf-bot is getting lonely.</p>
+          <Link className="btn primary" to="/create/albums">
+            Start a grid
+          </Link>
+        </div>
       )}
       <div className="grid-cards">
         {grids?.map((g) => {
