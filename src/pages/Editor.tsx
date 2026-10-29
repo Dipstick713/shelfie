@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Category, GridConfig, GridDoc, GridItem } from '../lib/types'
 import { CATEGORIES } from '../lib/categories'
 import { clearDraft, getGridById, loadDraft, newGrid, resizeItems, saveDraft, saveGrid } from '../lib/grids'
@@ -23,6 +23,7 @@ export function EditorRoute() {
 function Editor() {
   const { category: catParam, id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const [doc, setDoc] = useState<GridDoc | null>(() =>
     isCategory(catParam) ? (loadDraft(catParam) ?? newGrid(catParam)) : null,
@@ -30,7 +31,12 @@ function Editor() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [activeCell, setActiveCell] = useState<number | null>(null)
   const [showAuth, setShowAuth] = useState(false)
-  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  // a first save navigates to /edit/:id, which remounts this component — the link rides along in history state
+  const [shareUrl, setShareUrl] = useState<string | null>(() => (location.state as { shareUrl?: string } | null)?.shareUrl ?? null)
+  useEffect(() => {
+    // drop it from history so a refresh doesn't reopen the dialog
+    if ((location.state as { shareUrl?: string } | null)?.shareUrl) window.history.replaceState({ ...window.history.state, usr: null }, '')
+  }, [location.state])
   const [busy, setBusy] = useState<'save' | 'export' | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
@@ -138,8 +144,9 @@ function Editor() {
       clearDraft(doc.category, doc.id)
       if (!doc.id) clearDraft(doc.category)
       setDoc(saved)
-      setShareUrl(`${window.location.origin}/g/${saved.slug}`)
-      if (!doc.id) navigate(`/edit/${saved.id}`, { replace: true })
+      const url = `${window.location.origin}/g/${saved.slug}`
+      if (doc.id) setShareUrl(url)
+      else navigate(`/edit/${saved.id}`, { replace: true, state: { shareUrl: url } })
     } catch (e) {
       console.error('Save failed', e)
       setToast(friendlyError(e, 'Save failed. Your draft is still on this device.'))

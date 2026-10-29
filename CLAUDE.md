@@ -69,25 +69,27 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
 - Env vars live in `.env` (the user's choice; `.env` and `.env.*` are gitignored). `.env.example` lists them.
 - Deploy: Vercel, imported from GitHub (`Dipstick713/shelfie`), so a push to main redeploys. Env vars are set in the Vercel project settings.
 
-## Status (2026-10-25)
+## Status (2026-10-29)
 - Verified with a headless Chrome Playwright script:
   - album search and the EP filter
   - adding items, including custom items with image upload
   - grid resize and PNG export
   - artist search
   - the movie no-key notice
-- **Waiting on the user for credentials:**
-  - Supabase URL and anon key, plus running the SQL migration and enabling anonymous sign-ins
-  - TMDB key
-  - RAWG key
-- Not yet tested, because they need Supabase:
-  - save and share
-  - `/g/:slug`
-  - `/me`
-  - magic-link and guest auth
-  - storage uploads
-
-  Test all of these once the keys are in `.env.local`.
+  - mobile touch drag
+- Supabase project `fruadgxvjsseibueuhfa` is fully set up: the table, the `covers` bucket, and anonymous plus email sign-in.
+- End-to-end test passed (2026-10-29) in headless Chrome as a throwaway guest:
+  - guest sign-in
+  - cover upload to storage
+  - auto-advance to the next slot
+  - search add
+  - save & share, then the URL switching to `/edit/:id`
+  - update save
+  - share page, including the owner's Edit button
+  - My grids, then delete, then the share link reporting gone
+  - cleanup of the test cover
+- The first save navigates to `/edit/:id`, which remounts the editor. The share URL is passed along in history state (`location.state.shareUrl`); before that fix, the dialog was lost and saves looked like they failed.
+- Don't run write probes against the user's real rows. Test as a fresh guest user and clean up after.
 - Known limits:
   - Some Cover Art Archive mirrors (archive.org) lack CORS, so those covers are blank in exported PNGs.
   - RAWG images are landscape screenshots, which are centre-cropped to fit cells. Games default to square (1:1) cells, which the user prefers.
