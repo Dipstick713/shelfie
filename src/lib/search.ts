@@ -170,7 +170,9 @@ async function searchMovies(q: string, { signal }: SearchOptions): Promise<Searc
   }
   // v4 "API Read Access Token" is a JWT (starts with eyJ) → Bearer auth; otherwise treat as v3 api_key
   const isBearer = key.startsWith('eyJ')
-  const url = new URL('https://api.themoviedb.org/3/search/movie')
+  // TMDB goes through same-origin rewrites (vercel.json / vite.config.ts): some ISPs block
+  // themoviedb.org at DNS level, and same-origin posters always export cleanly to PNG.
+  const url = new URL('/tmdb/api/3/search/movie', window.location.origin)
   url.searchParams.set('query', q)
   url.searchParams.set('include_adult', 'false')
   if (!isBearer) url.searchParams.set('api_key', key)
@@ -183,7 +185,7 @@ async function searchMovies(q: string, { signal }: SearchOptions): Promise<Searc
       title: m.title,
       subtitle: m.release_date?.slice(0, 4),
       year: m.release_date?.slice(0, 4),
-      image: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : undefined,
+      image: m.poster_path ? `/tmdb/img/t/p/w500${m.poster_path}` : undefined,
       source: 'tmdb' as const,
     })),
   }

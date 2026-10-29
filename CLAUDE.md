@@ -25,6 +25,7 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
   - Albums: iTunes first, then MusicBrainz release-groups as a fallback, with covers from the Cover Art Archive. EP/single type comes from iTunes' " - EP" / " - Single" name suffix or MusicBrainz's primary type.
   - Artists: Deezer, called via JSONP because Deezer sends no CORS headers.
   - Movies: TMDB. A key starting with `eyJ` is sent as a Bearer token; anything else is used as a v3 `api_key`.
+    - Requests go through same-origin paths `/tmdb/api/*` and `/tmdb/img/*`, which are rewritten in `vercel.json` and proxied in `vite.config.ts`. This is because Jio (the user's ISP) blocks themoviedb.org at DNS level. It also keeps posters same-origin, so they export cleanly.
   - Games: RAWG.
 - `src/lib/grids.ts`:
   - localStorage drafts (`shelfie:draft:<category|id>`)
@@ -48,7 +49,8 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
 - `items` is a sparse array in row-major order, where `null` marks an empty slot. It may be longer than rows×cols while editing and is trimmed on save.
 - Editor-only elements (`.plus`, `.cell-remove`) are filtered out of the PNG export in `src/lib/exportImage.ts`.
 - Images load with `crossOrigin="anonymous"` so they can be exported. `Cover` retries without CORS (shown on screen, but blank in the export) and finally falls back to a title tile.
-- Env vars live in `.env.local`, which is gitignored via `*.local`. `.env.example` lists them.
+- Env vars live in `.env` (the user's choice; `.env` and `.env.*` are gitignored). `.env.example` lists them.
+- Deploy: Vercel, imported from GitHub (`Dipstick713/shelfie`), so a push to main redeploys. Env vars are set in the Vercel project settings.
 
 ## Status (2026-10-25)
 - Verified with a headless Chrome Playwright script:
