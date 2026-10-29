@@ -4,6 +4,7 @@ import type { Category, GridConfig, GridDoc, GridItem } from '../lib/types'
 import { CATEGORIES } from '../lib/categories'
 import { clearDraft, getGridById, loadDraft, newGrid, resizeItems, saveDraft, saveGrid } from '../lib/grids'
 import { downloadPng } from '../lib/exportImage'
+import { friendlyError } from '../lib/errors'
 import { useAuth } from '../lib/auth'
 import { GridCanvas } from '../components/GridCanvas'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -140,7 +141,8 @@ function Editor() {
       setShareUrl(`${window.location.origin}/g/${saved.slug}`)
       if (!doc.id) navigate(`/edit/${saved.id}`, { replace: true })
     } catch (e) {
-      setToast(e instanceof Error ? e.message : 'Save failed')
+      console.error('Save failed', e)
+      setToast(friendlyError(e, 'Save failed. Your draft is still on this device.'))
     } finally {
       setBusy(null)
     }

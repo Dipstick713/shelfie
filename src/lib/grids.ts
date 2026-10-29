@@ -147,8 +147,9 @@ export async function uploadCover(file: File): Promise<string> {
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
     const path = `${user.id}/${crypto.randomUUID()}.${ext}`
     const { error } = await supabase.storage.from('covers').upload(path, file, { contentType: file.type })
-    if (error) throw error
-    return supabase.storage.from('covers').getPublicUrl(path).data.publicUrl
+    if (!error) return supabase.storage.from('covers').getPublicUrl(path).data.publicUrl
+    // e.g. bucket not created yet — keep the cover inline rather than failing the add
+    console.warn('Cover upload failed, storing inline instead', error)
   }
   return downscaleToDataUrl(file, 600)
 }

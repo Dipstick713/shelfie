@@ -90,4 +90,4 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
   Test all of these once the keys are in `.env.local`.
 - Known limits:
   - Some Cover Art Archive mirrors (archive.org) lack CORS, so those covers are blank in exported PNGs.
-  - RAWG images are landscape screenshots, which are cropped to fit cells.
+  - RAWG images are landscape screenshots, which are centre-cropped to fit cells. Games default to square (1:1) cells, which the user prefers.

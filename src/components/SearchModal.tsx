@@ -109,7 +109,7 @@ export function SearchModal({
           {error && <p className="error">{error}</p>}
           {loading && <p className="muted">Searching…</p>}
 
-          <div className={`results ${category === 'movies' || category === 'games' ? 'poster' : ''}`}>
+          <div className={`results ${category === 'movies' ? 'poster' : ''}`}>
             {results.map((item) => (
               <button key={item.id} className="result" onClick={() => onPick(item)} title={item.title}>
                 <div className={`result-art ${category === 'artists' ? 'round' : ''}`}>

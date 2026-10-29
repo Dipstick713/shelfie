@@ -46,7 +46,7 @@ export const CATEGORIES: Record<Category, CategoryMeta> = {
     emoji: '🎮',
     blurb: 'The games that ate your weekends.',
     accent: '#22c55e',
-    defaults: { title: 'My favourite games', aspect: '3:4' },
+    defaults: { title: 'My favourite games', aspect: '1:1' },
   },
 }
 

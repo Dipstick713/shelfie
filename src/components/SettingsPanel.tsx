@@ -54,9 +54,9 @@ export function SettingsPanel({ config, onChange, filledCount }: Props) {
         <label className="field">
           <span>Shape</span>
           <select value={config.aspect} onChange={(e) => onChange({ aspect: e.target.value as AspectRatio })}>
-            <option value="1:1">Square (1:1) — albums</option>
+            <option value="1:1">Square (1:1) — albums, artists, games</option>
             <option value="2:3">Poster (2:3) — movies</option>
-            <option value="3:4">Box art (3:4) — games</option>
+            <option value="3:4">Box art (3:4)</option>
             <option value="4:3">Landscape (4:3)</option>
             <option value="16:9">Wide (16:9)</option>
           </select>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../lib/auth'
 import { hasSupabase } from '../lib/env'
 import { Modal } from './Modal'
+import { friendlyError } from '../lib/errors'
 
 export function AuthDialog({ onClose, reason }: { onClose: () => void; reason?: string }) {
   const { signInWithEmail, signInAnonymously } = useAuth()
@@ -26,7 +27,7 @@ export function AuthDialog({ onClose, reason }: { onClose: () => void; reason?: 
       await fn()
       after?.()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(friendlyError(e))
       setStatus('idle')
     }
   }
