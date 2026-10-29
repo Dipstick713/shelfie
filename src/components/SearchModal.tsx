@@ -209,7 +209,7 @@ function CustomForm({
         {image ? (
           <img src={image} alt="" />
         ) : (
-          <span className="muted">{uploading ? 'Uploading…' : 'Drop an image here or click to upload'}</span>
+          <span className="muted">{uploading ? 'Uploading…' : 'Tap to choose an image, or drop one here'}</span>
         )}
         <input type="file" accept="image/*" hidden onChange={(e) => handleFile(e.target.files?.[0])} />
       </label>

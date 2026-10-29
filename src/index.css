@@ -413,7 +413,7 @@ input[type='range']:hover::-webkit-slider-thumb, input[type='range']:focus-visib
 .cell-wrap.drop-over .cell { outline: 3px solid var(--accent); outline-offset: 2px; }
 .cell {
   width: var(--cell-w); height: var(--cell-h); border-radius: var(--radius); overflow: hidden; position: relative;
-  background: var(--cell); border: var(--border); touch-action: none;
+  background: var(--cell); border: var(--border); touch-action: manipulation;
 }
 .cell.editable { cursor: pointer; }
 .cell.editable.filled { cursor: grab; }
@@ -507,7 +507,8 @@ input[type='range']:hover::-webkit-slider-thumb, input[type='range']:focus-visib
 /* ---------- view / my grids ---------- */
 .view { padding: 28px 16px 56px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .view-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.view-canvas { max-width: 100%; overflow-x: auto; box-shadow: var(--app-shadow); }
+.view-canvas { width: 100%; display: flex; justify-content: center; }
+.view-canvas .canvas { box-shadow: var(--app-shadow); }
 .my-grids { max-width: 1120px; margin: 0 auto; padding: 40px 20px; }
 .page-title { font-family: var(--font-display); font-weight: 900; font-size: clamp(36px, 6vw, 64px); letter-spacing: -0.02em; margin-bottom: 28px; }
 .empty-shelf { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 16px; border: 1px dashed var(--app-line); text-align: center; }
@@ -520,15 +521,66 @@ input[type='range']:hover::-webkit-slider-thumb, input[type='range']:focus-visib
 .grid-card-info { display: flex; flex-direction: column; gap: 2px; }
 
 .toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--app-tile); color: var(--app-tile-fg);
+  position: fixed; bottom: max(24px, calc(env(safe-area-inset-bottom) + 12px)); left: 50%; transform: translateX(-50%); background: var(--app-tile); color: var(--app-tile-fg);
   padding: 12px 20px; font-family: var(--font-mono); font-size: 13px; z-index: 60; clip-path: var(--chamfer);
   animation: toast-in 0.35s cubic-bezier(0.3, 1.6, 0.6, 1);
+}
+
+/* ---------- touch & small screens ---------- */
+.on-touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .on-touch { display: inline; }
+  .on-pointer { display: none; }
+  .cell-remove { width: 30px; height: 30px; font-size: 13px; }
+  .wordmark span:hover, .theme-swatch:hover, .chip:hover, .result:hover .result-art { transform: none; }
+}
+@media (max-width: 820px) {
+  /* iOS zooms into inputs under 16px */
+  input, select { font-size: 16px; }
+  .editor-toolbar { padding: 10px 12px; gap: 8px; }
+  .cat-tabs {
+    flex-wrap: nowrap; overflow-x: auto; width: 100%; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tabs a { flex: none; padding: 9px 12px; }
+  .editor-toolbar > .spacer { display: none; }
+  .fill-meter { margin-right: auto; }
+  .stage { padding: 12px; }
+  .zoom-bar .icon-btn { min-width: 38px; height: 36px; }
+  .section { padding: 14px 16px; }
+  .section summary { min-height: 28px; }
+  .section[open] summary { margin-bottom: 14px; }
+  .chip { padding: 8px 12px; }
+  input[type='range'] { height: 28px; }
+  input[type='range']::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -9px; }
+  input[type='range']::-moz-range-thumb { width: 18px; height: 18px; }
+}
+@media (max-width: 600px) {
+  .hide-sm { display: none; }
+  .editor-toolbar .btn { padding: 9px 12px; }
+  .editor-toolbar .btn.primary { padding: 10px 14px; }
+  .app-nav { gap: 22px; }
+  .header-end { gap: 6px; }
+  .header-end .btn { padding: 8px 10px; }
+  /* modals become full-screen sheets */
+  .modal-backdrop { padding: 0; place-items: stretch; }
+  .modal, .modal.wide { width: 100%; height: 100%; max-height: none; border: none; animation: sheet-in 0.3s cubic-bezier(0.2, 1, 0.4, 1); }
+  .modal-head { padding: 12px 12px 12px 18px; }
+  .modal-head .icon-btn { min-width: 40px; height: 40px; font-size: 18px; }
+  .modal-body { padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .results { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+  .result { padding: 4px; }
+  .dropzone { width: min(220px, 100%); justify-self: center; }
+  .my-grids { padding: 28px 12px; }
+  .view { padding: 20px 12px 40px; }
+  .view-actions .btn { flex: 1; }
 }
 
 /* ---------- motion ---------- */
 @keyframes drop-in { from { transform: translateY(-40%) rotate(-8deg); opacity: 0; } }
 @keyframes pop { from { transform: scale(0.92); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } }
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } }
 @keyframes toast-in { from { transform: translate(-50%, 20px); opacity: 0; } }
 @keyframes marquee { to { transform: translateX(-50%); } }
 @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }

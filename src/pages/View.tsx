@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { GridDoc } from '../lib/types'
 import { getGridBySlug } from '../lib/grids'
@@ -12,6 +12,21 @@ export function View() {
   const [doc, setDoc] = useState<(GridDoc & { user_id: string }) | null>(null)
   const [error, setError] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [zoom, setZoom] = useState(1)
+
+  // shrink wide grids to fit small screens instead of scrolling sideways
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current
+    const canvas = ref.current
+    if (!wrap || !canvas) return
+    const fit = () => setZoom(Math.min(1, wrap.clientWidth / canvas.offsetWidth))
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(wrap)
+    ro.observe(canvas)
+    return () => ro.disconnect()
+  }, [doc])
 
   useEffect(() => {
     if (!slug) return
@@ -41,8 +56,10 @@ export function View() {
           Make your own
         </Link>
       </div>
-      <div className="view-canvas">
-        <GridCanvas ref={ref} category={doc.category} config={doc.config} items={doc.items} />
+      <div className="view-canvas" ref={wrapRef}>
+        <div style={{ zoom }}>
+          <GridCanvas ref={ref} category={doc.category} config={doc.config} items={doc.items} />
+        </div>
       </div>
     </main>
   )

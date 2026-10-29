@@ -11,14 +11,17 @@ import { ShelfBot } from '../components/ShelfBot'
 export function MyGrids() {
   const { user, loading } = useAuth()
   const [grids, setGrids] = useState<GridDoc[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [showAuth, setShowAuth] = useState(false)
 
   useEffect(() => {
     if (!user) return
     listMyGrids()
       .then(setGrids)
-      .catch((e) => setError(e.message))
+      .catch((e) => {
+        // show the empty shelf rather than a raw backend error
+        console.error('Failed to load grids', e)
+        setGrids([])
+      })
   }, [user])
 
   if (loading) return <main className="center muted">Loading…</main>
@@ -44,11 +47,10 @@ export function MyGrids() {
       <h1 className="page-title">
         <i className="mark inline" /> My grids
       </h1>
-      {error && <p className="error">{error}</p>}
       {grids?.length === 0 && (
         <div className="empty-shelf">
           <ShelfBot size={120} track />
-          <p className="muted">Nothing saved yet. Shelf-bot is getting lonely.</p>
+          <p className="muted">No grids to display yet. Shelf-bot is getting lonely.</p>
           <Link className="btn primary" to="/create/albums">
             Start a grid
           </Link>

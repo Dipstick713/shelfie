@@ -51,6 +51,14 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
 - Each category has an `accent` in `categories.ts`, exposed as the CSS var `--cat` (UI only, never in exports).
 - Mascot: `ShelfBot.tsx`. Its eyes track the pointer through a ref (no re-renders). It blinks and bobs, and the home page pokes it to hop and look happy. Mood lines live in `src/lib/moods.ts`. `Doodles.tsx` holds the animated category icons (`.doodle-host:hover`), `ShuffleTile` and `Marquee`.
 - The `.canvas` CSS section is export-critical. Restyle around it, not inside it.
+- Mobile:
+  - Drag uses `MouseSensor` plus `TouchSensor` with a 220ms long-press, and cells use `touch-action: manipulation` so swiping scrolls.
+  - On coarse pointers, PNG export goes through the Web Share sheet and falls back to a download.
+  - Settings sections start collapsed at ≤820px, except Grid size.
+  - Modals become full-screen sheets at ≤600px, and inputs are 16px to stop iOS zooming in.
+  - `/g/:slug` zooms the canvas to fit the screen.
+  - Verified with a Pixel 7 emulation using CDP touch events.
+- `/me` swallows load errors into the empty state ("No grids to display yet") and logs them to the console.
 
 ## Conventions
 - The app must work without any keys. Missing keys degrade to a notice plus manual add. With no Supabase keys the app shows "Offline mode" and keeps local drafts.

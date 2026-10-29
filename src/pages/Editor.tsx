@@ -195,7 +195,13 @@ function Editor() {
           Clear
         </button>
         <button className="btn" onClick={handleExport} disabled={busy !== null}>
-          {busy === 'export' ? 'Rendering…' : 'Download PNG'}
+          {busy === 'export' ? (
+            'Rendering…'
+          ) : (
+            <>
+              <span className="hide-sm">Download </span>PNG
+            </>
+          )}
         </button>
         <button className="btn primary" onClick={handleSave} disabled={busy !== null}>
           {busy === 'save' ? 'Saving…' : doc.id ? 'Save' : 'Save & share'}
@@ -229,7 +235,10 @@ function Editor() {
               onSwap={swap}
             />
           </div>
-          <p className="muted tiny hint mono">click a cell to add · drag to rearrange · ✕ to remove</p>
+          <p className="muted tiny hint mono">
+            <span className="on-pointer">click a cell to add · drag to rearrange · ✕ to remove</span>
+            <span className="on-touch">tap a cell to add · long-press to drag · ✕ to remove</span>
+          </p>
         </section>
       </div>
 

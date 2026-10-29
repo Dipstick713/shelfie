@@ -1,7 +1,8 @@
 import { forwardRef, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
   useDraggable,
   useDroppable,
@@ -31,7 +32,9 @@ export const GridCanvas = forwardRef<HTMLDivElement, Props>(function GridCanvas(
   ref,
 ) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // long-press to drag on touch, so swiping over the grid still scrolls the page
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   )
   const cellW = config.cellSize

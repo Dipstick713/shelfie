@@ -23,7 +23,7 @@ export function SettingsPanel({ config, onChange, filledCount }: Props) {
   const capacity = config.rows * config.cols
   return (
     <aside className="settings">
-      <Section title="Grid size">
+      <Section title="Grid size" first>
         <div className="chips">
           {SIZE_PRESETS.map(([r, c]) => (
             <button
@@ -117,9 +117,12 @@ export function SettingsPanel({ config, onChange, filledCount }: Props) {
   )
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+// on phones the panel sits under the grid, so only the first section starts expanded
+const compact = typeof window !== 'undefined' && window.matchMedia('(max-width: 820px)').matches
+
+function Section({ title, children, first }: { title: string; children: ReactNode; first?: boolean }) {
   return (
-    <details className="section" open>
+    <details className="section" open={first || !compact}>
       <summary>{title}</summary>
       <div className="stack">{children}</div>
     </details>
