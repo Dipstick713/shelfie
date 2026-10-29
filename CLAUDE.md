@@ -58,6 +58,7 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
   - Modals become full-screen sheets at ≤600px, and inputs are 16px to stop iOS zooming in.
   - `/g/:slug` zooms the canvas to fit the screen.
   - Verified with a Pixel 7 emulation using CDP touch events.
+- Social preview: `public/og.png` (1200×630). It's referenced from `index.html` as `__SITE_URL__/og.png`, and the `siteUrl` plugin in `vite.config.ts` fills that in from `VITE_SITE_URL` or Vercel's `VERCEL_PROJECT_PRODUCTION_URL`. Regenerate the PNG if the brand changes.
 - `/me` swallows load errors into the empty state ("No grids to display yet") and logs them to the console.
 
 ## Conventions
