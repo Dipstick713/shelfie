@@ -30,12 +30,21 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
 - Search ranking (`src/lib/fuzzy.ts`, `search.ts`):
   - Every provider's results are re-ranked client-side by a fuzzy score: normalised tokens and OSA edit distance, so "radiohed in rainbos" and "to pimp a buterfly" work. It also handles "artist title" queries, ignores leading "the", and strips edition suffixes like "(Deluxe Edition)" or "[Remastered]".
   - Ties are broken by popularity: iTunes position in the general search, MusicBrainz `count` (number of releases), Deezer fans, TMDB vote count and RAWG `added`.
-  - Albums query iTunes (general and `attribute=albumTerm`) plus MusicBrainz. The MusicBrainz query combines an exact phrase^5, fuzzy title tokens and per-token title-OR-artist matching (only for multi-word queries, to avoid "blonde" matching Blondie).
+  - Albums use four sources:
+    - iTunes general album search.
+    - iTunes song search grouped by album (`songHits`). A song only counts if it matched via its album or artist, not its own title. For 1–2 character queries this source is replaced by `attribute=albumTerm`.
+    - MusicBrainz.
+    - The iTunes artist discography (`lookup?id=…&entity=album`), fetched when the query names an artist found in the results (`artistNamedInQuery`). That artist's releases get +0.15.
+
+    This exists because Apple's album search never returns some major albums (underscores' "U", "Wallsocket"). iTunes allows about 20 requests a minute, so it's 2 searches per query plus a cached lookup.
+  - Albums come in two passes: `onPartial` shows the fast sources after a 1.5s grace period, then a final re-rank arrives once MusicBrainz answers. MusicBrainz release `count` is the strongest fame signal (Pink Floyd's DSOTM has 152).
+  - Known limit: a bare single letter ("U") can't single out a popular album, because no source gives a usable fame signal. "u underscores" or "underscores" works.
+  - The MusicBrainz query The MusicBrainz query combines an exact phrase^5, fuzzy title tokens and per-token title-OR-artist matching (only for multi-word queries, to avoid "blonde" matching Blondie).
   - Duplicates are collapsed with `dedupeKey`, and knock-offs (karaoke, tribute, string quartet…) are penalised.
   - 1-character queries are allowed. For queries of 1–2 characters only exact titles score high, and an exact match as typed gets a small bonus ("A" ranks above "À«Ǡ").
   - Robustness:
     - `fetchJson` has an 8s timeout, with one retry on 429/5xx or network errors but not on timeouts.
-    - `settleWithGrace` waits for the main source, then gives the others 1.5s.
+    - `settleWithGrace` waits for the main source, then gives the others 1.5s; for albums the stragglers still feed the final pass.
     - Results are cached in memory for 10 minutes. Album source lists are cached per query across filters, so the Albums/EPs/Singles chips filter locally (this also avoids MusicBrainz 503s).
   - Test with real queries in headless Chrome by importing `/src/lib/search.ts` in the page. MusicBrainz rate-limits at about 1 req/s, so pause between queries.
 - `src/lib/grids.ts`:

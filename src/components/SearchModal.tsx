@@ -53,7 +53,12 @@ export function SearchModal({
       setLoading(true)
       setError(null)
       try {
-        const r = await search(category, q, { musicFilter, signal: ctrl.signal })
+        const r = await search(category, q, {
+          musicFilter,
+          signal: ctrl.signal,
+          // fast sources first; the list re-ranks when slower ones (MusicBrainz) arrive
+          onPartial: (partial) => !stale && setResults(partial.items),
+        })
         if (stale) return
         setResults(r.items)
         setNotice(r.notice ?? null)

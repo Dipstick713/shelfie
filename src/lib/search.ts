@@ -1,12 +1,14 @@
 import type { Category, GridItem, MusicReleaseType } from './types'
 import { env } from './env'
-import { dedupeKey, matchScore, normalize, stripEdition } from './fuzzy'
+import { dedupeKey, matchScore, normalize, stringScore, stripEdition } from './fuzzy'
 
 export type MusicFilter = 'all' | 'album' | 'ep' | 'single'
 
 export interface SearchOptions {
   musicFilter?: MusicFilter
   signal?: AbortSignal
+  /** early, partial results while slower sources are still answering */
+  onPartial?: (result: SearchResult) => void
 }
 
 export interface SearchResult {
@@ -161,35 +163,102 @@ function releaseTypeFromName(name: string): { type: MusicReleaseType; clean: str
   return { type: 'album', clean: name }
 }
 
-interface ITunesAlbum {
+interface ITunesCollection {
   collectionId: number
   collectionName: string
+  trackName?: string
+  artistId?: number
   artistName: string
   artworkUrl100?: string
   releaseDate?: string
+  wrapperType?: string
 }
 
-async function searchITunesAlbums(q: string, signal?: AbortSignal, titleOnly = false): Promise<GridItem[]> {
+/** Apple artist ids, kept beside the items so GridItem stays clean */
+const itunesArtistId = new WeakMap<GridItem, number>()
+/** how many of the matching songs come from this album — a strong fame signal */
+const songHits = new WeakMap<GridItem, number>()
+
+function itunesItem(r: ITunesCollection): GridItem {
+  const { type, clean } = releaseTypeFromName(r.collectionName)
+  const item: GridItem = {
+    id: uid('itunes', r.collectionId),
+    title: clean,
+    subtitle: r.artistName,
+    image: r.artworkUrl100?.replace(/\/\d+x\d+bb\./, '/600x600bb.'),
+    year: r.releaseDate?.slice(0, 4),
+    releaseType: type,
+    source: 'itunes' as const,
+  }
+  if (r.artistId) itunesArtistId.set(item, r.artistId)
+  return item
+}
+
+function itunesSearchUrl(q: string, entity: 'album' | 'song', limit: number, attribute?: string): URL {
   const url = new URL('https://itunes.apple.com/search')
   url.searchParams.set('term', q)
   url.searchParams.set('media', 'music')
-  url.searchParams.set('entity', 'album')
-  url.searchParams.set('limit', titleOnly ? '30' : '50')
+  url.searchParams.set('entity', entity)
+  url.searchParams.set('limit', String(limit))
+  if (attribute) url.searchParams.set('attribute', attribute)
+  return url
+}
+
+async function searchITunesAlbums(q: string, signal?: AbortSignal, titleOnly = false): Promise<GridItem[]> {
   // title-only search finds short titles ("A", "X") that the general search buries under artist matches
-  if (titleOnly) url.searchParams.set('attribute', 'albumTerm')
-  const data = await fetchJson<{ results: ITunesAlbum[] }>(url, { signal })
-  return data.results.map((r) => {
-    const { type, clean } = releaseTypeFromName(r.collectionName)
-    return {
-      id: uid('itunes', r.collectionId),
-      title: clean,
-      subtitle: r.artistName,
-      image: r.artworkUrl100?.replace(/\/\d+x\d+bb\./, '/600x600bb.'),
-      year: r.releaseDate?.slice(0, 4),
-      releaseType: type,
-      source: 'itunes' as const,
-    }
+  const url = itunesSearchUrl(q, 'album', titleOnly ? 30 : 50, titleOnly ? 'albumTerm' : undefined)
+  const data = await fetchJson<{ results: ITunesCollection[] }>(url, { signal })
+  return data.results.map(itunesItem)
+}
+
+/**
+ * Albums reached through popular songs. Apple's album search is weak ("u underscores" never returns
+ * the album "U"), but its song search ranks by popularity — so group matching songs by album.
+ */
+async function searchITunesViaSongs(q: string, signal?: AbortSignal): Promise<GridItem[]> {
+  const data = await fetchJson<{ results: ITunesCollection[] }>(itunesSearchUrl(q, 'song', 50), { signal })
+  const qNorm = normalize(q)
+  const byAlbum = new Map<number, { item: GridItem; hits: number; first: number }>()
+  data.results.forEach((r, i) => {
+    // a song is evidence for its album only if it matched through the album/artist, not its own title
+    // (six remixes of a song called "Dark Side of the Moon" say nothing about that album's fame)
+    const viaAlbum = stringScore(qNorm, normalize(r.trackName ?? '')) < 0.8 ? 1 : 0
+    const hit = byAlbum.get(r.collectionId)
+    if (hit) hit.hits += viaAlbum
+    else byAlbum.set(r.collectionId, { item: itunesItem(r), hits: viaAlbum, first: i })
   })
+  // albums with several popular matching songs first
+  return [...byAlbum.values()]
+    .sort((a, b) => b.hits - a.hits || a.first - b.first)
+    .map((x) => (songHits.set(x.item, x.hits), x.item))
+}
+
+/** An artist's whole discography (albums, EPs, singles) from Apple, cached. */
+const discographyCache = new Map<number, GridItem[]>()
+async function itunesDiscography(artistId: number, signal?: AbortSignal): Promise<GridItem[]> {
+  const hit = discographyCache.get(artistId)
+  if (hit) return hit
+  const url = `https://itunes.apple.com/lookup?id=${artistId}&entity=album&limit=200`
+  const data = await fetchJson<{ results: ITunesCollection[] }>(url, { signal })
+  const items = data.results.filter((r) => r.wrapperType === 'collection').map(itunesItem)
+  discographyCache.set(artistId, items)
+  return items
+}
+
+/** If the query names an artist that shows up in the results ("u underscores"), return that artist. */
+function artistNamedInQuery(q: string, items: GridItem[]): { id: number; name: string } | undefined {
+  const qNorm = normalize(q)
+  const counts = new Map<number, { name: string; n: number }>()
+  for (const item of items) {
+    const id = itunesArtistId.get(item)
+    const name = item.subtitle
+    if (!id || !name || stringScore(normalize(name), qNorm) < 0.85) continue
+    const c = counts.get(id) ?? { name, n: 0 }
+    c.n++
+    counts.set(id, c)
+  }
+  const best = [...counts.entries()].sort((a, b) => b[1].n - a[1].n)[0]
+  return best && { id: best[0], name: best[1].name }
 }
 
 interface MBReleaseGroup {
@@ -244,33 +313,59 @@ async function searchMusicBrainz(q: string, filter: MusicFilter, signal?: AbortS
   })
 }
 
+interface AlbumSources {
+  lists: PromiseSettledResult<GridItem[]>[]
+  /** artist named in the query, whose discography was pulled in */
+  artist?: string
+}
 /** Raw source lists per query (all release types), so flipping Albums/EPs/Singles needs no new requests. */
-const albumSourceCache = new Map<string, { at: number; lists: PromiseSettledResult<GridItem[]>[] }>()
+const albumSourceCache = new Map<string, { at: number; sources: AlbumSources }>()
 
-async function albumSources(q: string, signal?: AbortSignal): Promise<PromiseSettledResult<GridItem[]>[]> {
+/**
+ * Albums come in two passes: Apple answers fast, MusicBrainz (the best fame signal, via release
+ * counts) can lag a few seconds. `onPartial` gets a ranking from whatever is in after a short grace
+ * period; the returned promise is the final ranking with every source.
+ */
+async function searchAlbums(q: string, { musicFilter = 'all', signal, onPartial }: SearchOptions): Promise<SearchResult> {
   const key = q.toLowerCase()
   const hit = albumSourceCache.get(key)
-  if (hit && Date.now() - hit.at < CACHE_TTL) return hit.lists
-  const lists = await settleWithGrace([
-    searchITunesAlbums(q, signal),
-    searchITunesAlbums(q, signal, true),
-    searchMusicBrainz(q, 'all', signal),
-  ])
+  if (hit && Date.now() - hit.at < CACHE_TTL) return rankAlbums(q, hit.sources, musicFilter)
+
+  // Apple allows ~20 requests/min, so: two searches per query, plus a cached discography lookup
+  // only when the query names an artist
+  const short = normalize(q).length <= 2
+  const general = searchITunesAlbums(q, signal)
+  const second = short ? searchITunesAlbums(q, signal, true) : searchITunesViaSongs(q, signal)
+  let artist: { id: number; name: string } | undefined
+  const discography = Promise.allSettled([general, second]).then((r) => {
+    artist = artistNamedInQuery(q, r.flatMap((x) => (x.status === 'fulfilled' ? x.value : [])))
+    return artist ? itunesDiscography(artist.id, signal) : []
+  })
+  const all = [general, second, searchMusicBrainz(q, 'all', signal), discography]
+
+  const early = await settleWithGrace(all)
+  const complete = (lists: PromiseSettledResult<GridItem[]>[]) => lists.every((l) => !(l.status === 'rejected' && l.reason?.message === 'too slow'))
+  if (!complete(early)) {
+    // only surface the partial ranking if it has something to show
+    if (early.some((l) => l.status === 'fulfilled' && l.value.length)) onPartial?.(rankAlbums(q, { lists: early, artist: artist?.name }, musicFilter))
+  }
+  const lists = complete(early) ? early : await Promise.allSettled(all)
+  if (signal?.aborted) throw signal.reason
+  const sources = { lists, artist: artist?.name }
   // only cache complete answers, so a rate-limited MusicBrainz gets another go next time
   if (lists.every((l) => l.status === 'fulfilled')) {
-    albumSourceCache.set(key, { at: Date.now(), lists })
+    albumSourceCache.set(key, { at: Date.now(), sources })
     if (albumSourceCache.size > 60) albumSourceCache.delete(albumSourceCache.keys().next().value!)
   }
-  return lists
+  return rankAlbums(q, sources, musicFilter)
 }
 
-async function searchAlbums(q: string, { musicFilter = 'all', signal }: SearchOptions): Promise<SearchResult> {
-  const lists = await albumSources(q, signal)
+function rankAlbums(q: string, { lists, artist }: AlbumSources, musicFilter: MusicFilter): SearchResult {
   // each source's own ordering is its popularity signal: Apple's general search puts Adele's "21"
-  // first, which breaks ties between same-titled albums
-  const POSITION_WEIGHT = [0.12, 0.05, 0.05]
+  // first, which breaks ties between same-titled albums. Discographies are chronological, so no weight.
+  const POSITION_WEIGHT = [0.12, 0.04, 0.05, 0]
+  const artistNorm = artist && normalize(artist)
   if (lists.every((l) => l.status === 'rejected')) {
-    if (signal?.aborted) throw signal.reason
     throw new Error("Album search isn't responding right now. Try again in a moment, or add it yourself.")
   }
 
@@ -281,10 +376,15 @@ async function searchAlbums(q: string, { musicFilter = 'all', signal }: SearchOp
     if (l.status !== 'fulfilled') return
     l.value.forEach((item, pos) => {
       if (musicFilter !== 'all' && item.releaseType !== musicFilter) return
-      const popularityBoost = POSITION_WEIGHT[listIdx] * Math.max(0, 1 - pos / 30) + popularity(mbReleaseCount.get(item), 0.06)
+      const popularityBoost =
+        POSITION_WEIGHT[listIdx] * Math.max(0, 1 - pos / 30) +
+        popularity(mbReleaseCount.get(item), 0.08) +
+        Math.min(songHits.get(item) ?? 0, 6) * 0.03
       // when browsing "All", a same-named album is usually what people want over a single
       const typeBias = item.releaseType === 'album' ? 0.02 : item.releaseType === 'single' ? -0.04 : 0
-      const s = score(q, item.title, item.subtitle) + typeBias + popularityBoost
+      // the user named this artist, so their releases beat same-titled ones by strangers
+      const artistBonus = artistNorm && item.subtitle && normalize(item.subtitle) === artistNorm ? 0.15 : 0
+      const s = score(q, item.title, item.subtitle) + typeBias + popularityBoost + artistBonus
       const key = dedupeKey(item.title, item.subtitle)
       const source = listIdx === 2 ? 'mb' : 'itunes'
       const prev = merged.get(key)
