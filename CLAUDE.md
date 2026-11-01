@@ -39,7 +39,7 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
     This exists because Apple's album search never returns some major albums (underscores' "U", "Wallsocket"). iTunes allows about 20 requests a minute, so it's 2 searches per query plus a cached lookup.
   - Albums come in two passes: `onPartial` shows the fast sources after a 1.5s grace period, then a final re-rank arrives once MusicBrainz answers. MusicBrainz release `count` is the strongest fame signal (Pink Floyd's DSOTM has 152).
   - Known limit: a bare single letter ("U") can't single out a popular album, because no source gives a usable fame signal. "u underscores" or "underscores" works.
-  - The MusicBrainz query The MusicBrainz query combines an exact phrase^5, fuzzy title tokens and per-token title-OR-artist matching (only for multi-word queries, to avoid "blonde" matching Blondie).
+  - The MusicBrainz query combines an exact phrase^5, fuzzy title tokens and per-token title-OR-artist matching (only for multi-word queries, to avoid "blonde" matching Blondie).
   - Duplicates are collapsed with `dedupeKey`, and knock-offs (karaoke, tribute, string quartet…) are penalised.
   - 1-character queries are allowed. For queries of 1–2 characters only exact titles score high, and an exact match as typed gets a small bonus ("A" ranks above "À«Ǡ").
   - Robustness:
