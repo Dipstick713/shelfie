@@ -476,6 +476,7 @@ input[type='range']:hover::-webkit-slider-thumb, input[type='range']:focus-visib
 .search-input { font-size: 17px; padding: 14px 16px; border-width: 1px 1px 2px; border-bottom-color: var(--app-fg); }
 
 .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
+.results.is-loading { opacity: 0.55; transition: opacity 0.2s; }
 .result {
   display: flex; flex-direction: column; gap: 4px; background: none; border: 1px solid transparent; padding: 6px;
   color: var(--app-fg); text-align: left; cursor: pointer; font: inherit; min-width: 0; transition: border-color 0.15s, background 0.15s;

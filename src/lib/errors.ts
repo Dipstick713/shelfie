@@ -12,6 +12,7 @@ export function friendlyError(e: unknown, fallback = 'Something went wrong'): st
     return "You don't have permission to change this grid. Try signing in again."
   if (/bucket not found/i.test(msg)) return "Image uploads aren't set up yet. Paste an image URL instead."
   if (/failed to fetch|networkerror|load failed/i.test(msg)) return "Couldn't reach the server. Check your connection and try again."
+  if (/timed out|aborted/i.test(msg)) return 'That search took too long. Try again, or add it yourself.'
   if (/rate limit|too many/i.test(msg)) return 'Too many tries. Wait a minute and try again.'
   return msg || fallback
 }

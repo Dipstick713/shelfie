@@ -26,7 +26,18 @@ A my9albums.com-style "favourites grid" maker. It has four categories: albums & 
   - Artists: Deezer, called via JSONP because Deezer sends no CORS headers.
   - Movies: TMDB. A key starting with `eyJ` is sent as a Bearer token; anything else is used as a v3 `api_key`.
     - Requests go through same-origin paths `/tmdb/api/*` and `/tmdb/img/*`, which are rewritten in `vercel.json` and proxied in `vite.config.ts`. This is because Jio (the user's ISP) blocks themoviedb.org at DNS level. It also keeps posters same-origin, so they export cleanly.
-  - Games: RAWG.
+  - Games: RAWG. It runs a precise search and a fuzzy search in parallel.
+- Search ranking (`src/lib/fuzzy.ts`, `search.ts`):
+  - Every provider's results are re-ranked client-side by a fuzzy score: normalised tokens and OSA edit distance, so "radiohed in rainbos" and "to pimp a buterfly" work. It also handles "artist title" queries, ignores leading "the", and strips edition suffixes like "(Deluxe Edition)" or "[Remastered]".
+  - Ties are broken by popularity: iTunes position in the general search, MusicBrainz `count` (number of releases), Deezer fans, TMDB vote count and RAWG `added`.
+  - Albums query iTunes (general and `attribute=albumTerm`) plus MusicBrainz. The MusicBrainz query combines an exact phrase^5, fuzzy title tokens and per-token title-OR-artist matching (only for multi-word queries, to avoid "blonde" matching Blondie).
+  - Duplicates are collapsed with `dedupeKey`, and knock-offs (karaoke, tribute, string quartet…) are penalised.
+  - 1-character queries are allowed. For queries of 1–2 characters only exact titles score high, and an exact match as typed gets a small bonus ("A" ranks above "À«Ǡ").
+  - Robustness:
+    - `fetchJson` has an 8s timeout, with one retry on 429/5xx or network errors but not on timeouts.
+    - `settleWithGrace` waits for the main source, then gives the others 1.5s.
+    - Results are cached in memory for 10 minutes. Album source lists are cached per query across filters, so the Albums/EPs/Singles chips filter locally (this also avoids MusicBrainz 503s).
+  - Test with real queries in headless Chrome by importing `/src/lib/search.ts` in the page. MusicBrainz rate-limits at about 1 req/s, so pause between queries.
 - `src/lib/grids.ts`:
   - localStorage drafts (`shelfie:draft:<category|id>`)
   - Supabase CRUD on the `grids` table

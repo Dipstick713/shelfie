@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Category, GridItem, MusicReleaseType } from '../lib/types'
 import { CATEGORIES } from '../lib/categories'
-import { search, type MusicFilter } from '../lib/search'
+import { MIN_QUERY_LENGTH, search, type MusicFilter } from '../lib/search'
+import { friendlyError } from '../lib/errors'
 import { uploadCover } from '../lib/grids'
 import { Modal } from './Modal'
 import { Cover } from './Cover'
@@ -40,7 +41,7 @@ export function SearchModal({
 
   useEffect(() => {
     const q = query.trim()
-    if (q.length < 2) {
+    if (q.length < MIN_QUERY_LENGTH) {
       setResults([])
       setNotice(null)
       setError(null)
@@ -58,12 +59,12 @@ export function SearchModal({
         setNotice(r.notice ?? null)
       } catch (e) {
         if (stale || ctrl.signal.aborted) return
-        setError(e instanceof Error ? e.message : 'Search failed')
+        setError(friendlyError(e, 'Search failed. Try again, or add it yourself.'))
         setResults([])
       } finally {
         if (!stale) setLoading(false)
       }
-    }, 350)
+    }, q.length === 1 ? 500 : 300) // single letters wait a little longer for the next keystroke
     return () => {
       stale = true
       clearTimeout(t)
@@ -107,9 +108,9 @@ export function SearchModal({
 
           {notice && <p className="notice">{notice}</p>}
           {error && <p className="error">{error}</p>}
-          {loading && <p className="muted">Searching…</p>}
+          {loading && results.length === 0 && <p className="muted mono tiny">searching…</p>}
 
-          <div className={`results ${category === 'movies' ? 'poster' : ''}`}>
+          <div className={`results ${category === 'movies' ? 'poster' : ''} ${loading ? 'is-loading' : ''}`}>
             {results.map((item) => (
               <button key={item.id} className="result" onClick={() => onPick(item)} title={item.title}>
                 <div className={`result-art ${category === 'artists' ? 'round' : ''}`}>
@@ -125,9 +126,9 @@ export function SearchModal({
             ))}
           </div>
 
-          {query.trim().length >= 2 && !loading && (
+          {query.trim().length >= MIN_QUERY_LENGTH && !loading && (
             <div className="cant-find">
-              {results.length === 0 && !notice && !error && <p className="muted">No results.</p>}
+              {results.length === 0 && !notice && !error && <p className="muted">No results for “{query.trim()}”. Check the spelling, or try the artist name.</p>}
               <button className="btn" onClick={() => setTab('custom')}>
                 Can't find it? Add “{query.trim()}” yourself →
               </button>
